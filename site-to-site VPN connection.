@@ -1,0 +1,60 @@
+STEPS:-  Task:- Site-to-Site VPN connection using Openswan Package Install. 
+         1) Create VPC for Private & Public network on same region. (AWS server and Client server)
+             VPC-A --> CIDR:- 10.10.0.0/16 --> for private.
+             VPC-B --> CIDR:- 172.25.0.0/16 --> for public.
+         2) Create Subnet for VPC-A and VPC-B --> VPC-A :- pvt-subnet --> CIDR Block:- 10.10.0.0/20
+                                                  VPC-B :- pub-subnet --> CIDR Block:- 172.25.0.0/20
+         3) Create Internet Gateway for VPC-B and Attach it to VPC-B.
+         4) Route table for VPC-B, Add Destination and Target and select Subnet associations.
+         5) Route table for VPC-A, Select Subnet associations. and Route propogation edit --> enable VPG-private --> Save
+         6) Create 2 Instance for Public and private instance, select AMI Linux 2.
+         7) Select instances and edit inbound Rule of All ICMP-IPV4 select and save rule.
+         8) Create customer gateway --> Name:- customer-gateway
+                                        IP Address:- Public IP of pub-instance
+         9) Create virtual private gateway --> Name:- VPG-private
+                                               Amazon default ASN
+        10) Select VPG --> Action --> Attach to VPC-A
+        11) Site-to-Site VPN connection Open :- Create VPN Connection -->
+                                                 Name:- vpn
+                                                 VPG:- select our created VPG.
+                                                 customer gateway:- select our created CG.
+                                                 Routing Option:- Static
+                                                 Static IP prefix:- 172.25.0.0/16
+                                                 Create VPN connection.
+        12) Select VPN created --> Download configuration --> Vendor:- openswan --> Download & save to file in PC. (vpn txt file) 
+        13) Copy Public IP of EC2 Instance (pub-instance).
+        14) Open Ubuntu :- Take SSH and Install openswan packages.
+
+         Commands:-   $ ssh -i newkey1.pem ec2-user@public IP
+                      $ sudo su
+                      # yum install openswan -y
+                        Openswan package successfully download and Installed.
+
+                      # vim /etc/sysctl.conf
+                         copy and paste 3 line of net from vpn txt file and uncomment it.
+                      # sysctl -p  --> show this 3 line
+                      # vim /etc/ipsec.conf  --> uncomment last line
+                      # service network restart  --> OK Done
+                      # vim /etc/ipsec.d/aws.conf
+                          copy and paste conn tunnel1 all lines from vpn txt file and changes in three line.
+                          auth=esp --> delete this line
+                          leftsubnet= CIDR Client(public IP) [172.25.0.0/16]
+                          rightsubnet=CIDR Aws(private IP) [10.10.0.0/16]
+                      # vim /etc/ipsec.d/aws.secrets
+                           Copy and paste line of IP from vpn txt file.
+                      # systemctl start ipsec
+                      # systemctl status ipsec  --> active(running)
+                      # systemctl restart network
+                      # systemctl status network  --> active(running)
+
+       Go to site to site VPN & check the Tunnel 1 status is UP after running systemctl start ipsec commands. 
+       and also RTB VPC-A route propogation is shown into Routes. It will propogated in Routes.
+                     
+                      # ping Private IP of Pvt-instance
+                      # ping private IP of pub-instance
+
+        Ping Successfully, Hence the traffic is flow into Tunnel 1 is done. and also VPN site to site connection is done.
+
+        
+                      
+            
